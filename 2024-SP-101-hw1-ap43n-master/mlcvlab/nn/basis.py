@@ -2,12 +2,14 @@
 import numpy as np
 
 def linear(x, W):
-    # TODO
-    raise NotImplementedError("Linear function not implemented")
+    linear = np.dot(W.T, x)
+    return linear
+    # raise NotImplementedError("Linear function not implemented")
     
 def linear_grad(x):
-    # TODO
-    raise NotImplementedError("Gradient of Linear function not implemented")
+    linear_grad = x
+    return linear_grad
+    # raise NotImplementedError("Gradient of Linear function not implemented")
 
 def radial(x, W):
     # TODO

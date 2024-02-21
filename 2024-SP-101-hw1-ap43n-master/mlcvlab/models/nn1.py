@@ -26,4 +26,3 @@ class NN1():
         # TODO
         # return emp_loss_grad_
         raise NotImplementedError("NN1 Emperical Loss grad not implemented")
-       
