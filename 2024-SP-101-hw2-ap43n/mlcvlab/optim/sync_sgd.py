@@ -5,7 +5,7 @@ from sklearn.datasets import fetch_openml
 from sklearn.model_selection import train_test_split
 
 @jit(forceobj=True)
-def sync_sgd(model, X_train_batches, y_train_batches, lr, R=10, mode='test'):
+def sync_sgd(model, X_train_batches, y_train_batches, lr, R=100, mode='test'):
     '''
     Compute gradient estimate of emp loss on each mini batch in-parallel using GPU blocks/threads.
     Wait for all results and aggregate results by calling cuda.synchronize(). For more details, refer to https://thedatafrog.com/en/articles/cuda-kernel-python
