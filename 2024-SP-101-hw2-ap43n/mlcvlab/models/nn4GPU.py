@@ -4,9 +4,9 @@ from mlcvlab.nn.basis import linear, linear_grad
 from mlcvlab.nn.activations import relu, sigmoid, sigmoid_grad, relu_grad
 from .base import Layer
 from mlcvlab.nn.batchnorm import BatchNorm
+from numba import jit, njit, vectorize, cuda, uint32, f8, uint8
 
-
-class NN4():
+class NN4_GPU():
     def __init__(self, use_batchnorm=False, dropout_param=0):
         self.layers = [
             Layer(None, relu),
@@ -22,6 +22,7 @@ class NN4():
             self.bn2 = BatchNorm(100)
             self.bn3 = BatchNorm(50)
 
+    @cuda.jit(device=True)
     def nn4(self, x, mode):
         # TODO
         if self.use_batchnorm:
@@ -68,68 +69,63 @@ class NN4():
             
             return self.y_hat
         # raise NotImplementedError("NN4 Without Batchnorm model not implemented")
-        
 
-    def grad(self, x, y, W, mode):
-        self.W = W
-        self.layers[0].W = self.W[0]
-        self.layers[1].W = self.W[1]
-        self.layers[2].W = self.W[2]
-        self.layers[3].W = self.W[3]
+    @cuda.jit(device=True)
+    def grad(self, x, y, mode):
+        
         # TODO  
         if self.use_batchnorm:
             #Layer 4
-            loss_grad_yhat = l2_grad(y, self.y_hat)
+            del_l_yhat = l2_grad(y, self.y_hat)
             del_yhat_z4 = sigmoid_grad(self.y_hat)
             
-            del_l_z4 = loss_grad_yhat * del_yhat_z4
+            del_l_z4 = del_l_yhat * del_yhat_z4 
             del_z4_w4 = linear_grad(del_l_z4, self.mask4, mode)
             del_l_w4 = self.y3.T.dot(del_z4_w4) / 100 
             
             #Layer 3
             del_z4_y3 = self.layers[3].W.T 
-            del_l_y3 =  (del_l_z4 * self.mask4).dot(del_z4_y3) 
+            del_l_y3 =  (del_l_z4 * self.mask4).dot(del_z4_y3)
             del_l_z3hat, del_l_gamma3, del_l_beta3 = self.bn3.batchnorm_grad(del_l_y3)
             del_z3hat_z3 = relu_grad(self.z3_hat)
             
             del_l_z3 = del_l_z3hat * del_z3hat_z3
             del_z3_w3 = linear_grad(del_l_z3, self.mask3, mode)
-            del_l_w3 = self.y2.T.dot(del_z3_w3) / 100 
+            del_l_w3 = self.y2.T.dot(del_z3_w3) / 100
             
             #Layer 2
             del_z3_y2 = self.layers[2].W.T
-            del_l_y2 = (del_l_z3 * self.mask3).dot(del_z3_y2) 
-            del_l_z2hat, del_l_gamma2, del_l_beta2 = self.bn2.batchnorm_grad(del_l_y2) 
-            del_z2hat_z2 = relu_grad(self.z2_hat) 
+            del_l_y2 = (del_l_z3 * self.mask3).dot(del_z3_y2)
+            del_l_z2hat, del_l_gamma2, del_l_beta2 = self.bn2.batchnorm_grad(del_l_y2)
+            del_z2hat_z2 = relu_grad(self.z2_hat)
             
-            del_l_z2 = del_l_z2hat * del_z2hat_z2 
+            del_l_z2 = del_l_z2hat * del_z2hat_z2
             del_z2_w2 = linear_grad(del_l_z2, self.mask2, mode)
-            grad_w2 = self.y1.T.dot(del_z2_w2) / 100 
+            del_l_w2 = self.y1.T.dot(del_z2_w2) / 100 
             
-            #Layer 1
-            del_z2_y1 = self.layers[1].W.T 
+            #Layer 1 
+            del_z2_y1 = self.layers[1].W.T
             del_l_y1 = (del_l_z2 * self.mask2).dot(del_z2_y1) 
-            del_l_z1hat, grad_gamma1, grad_beta1 = self.bn1.batchnorm_grad(del_l_y1)
-            del_z1hat_z1 = relu_grad(self.z1_hat) 
+            del_l_z1hat, del_l_gamma1, del_l_beta1 = self.bn1.batchnorm_grad(del_l_y1)
+            del_z1hat_z1 = relu_grad(self.z1_hat)
             
-            del_l_z1 = del_l_z1hat * del_z1hat_z1 
+            del_l_z1 = del_l_z1hat * del_z1hat_z1
             del_z1_w1 = linear_grad(del_l_z1, self.mask1, mode)
-            grad_w1 = x.T.dot(del_z1_w1) / 100 
+            del_l_w1 = x.T.dot(del_z1_w1) / 100
             
-            return [grad_w1, grad_w2, del_l_w3, del_l_w4, grad_gamma1, grad_beta1, del_l_gamma2, del_l_beta2, del_l_gamma3, del_l_beta3]
-        # raise NotImplementedError("NN4 gradient (backpropagation) Batchnorm model not implemented")
+            return [del_l_w1, del_l_w2, del_l_w3, del_l_w4, del_l_gamma1, del_l_beta1, del_l_gamma2, del_l_beta2, del_l_gamma3, del_l_beta3]
 
         else:
             y_hat = self.nn4(x, mode)
             
-            #Layer 4 
-            loss_grad_yhat = l2_grad(y, y_hat) 
-            del_yhat_z4 = sigmoid_grad(self.y_hat) 
+            #Layer 4
+            del_l_yhat = l2_grad(y, y_hat)
+            del_yhat_z4 = sigmoid_grad(self.y_hat)
             
-            del_l_z4 = loss_grad_yhat * del_yhat_z4 
-            del_l_w4 = self.z3_hat.dot((del_l_z4 * self.mask4).T) / 100 
+            del_l_z4 = del_l_yhat * del_yhat_z4 
+            del_l_w4 = self.z3_hat.dot((del_l_z4 * self.mask4).T) / 100
             
-            #Layer 3 
+            #Layer 3
             del_z4_z3hat = self.layers[3].W 
             del_z3hat_z3 = relu_grad(self.z3_hat) 
             del_l_z3hat = del_z4_z3hat.dot((del_l_z4 * self.mask4)) 
@@ -137,28 +133,27 @@ class NN4():
             del_l_z3 = del_l_z3hat * del_z3hat_z3 
             del_l_w3 = self.z2_hat.dot((del_l_z3 * self.mask3).T) / 100 
             
-            #Layer 2 
+            #Layer 2
             del_z3_z2hat = self.layers[2].W 
             del_z2hat_z2 = relu_grad(self.z2_hat) 
             del_l_z2hat = del_z3_z2hat.dot((del_l_z3 * self.mask3)) 
             
             del_l_z2 = del_l_z2hat * del_z2hat_z2 
-            grad_w2 = self.z1_hat.dot((del_l_z2 * self.mask2).T) / 100
+            del_l_w2 = self.z1_hat.dot((del_l_z2 * self.mask2).T) / 100 
             
             #Layer 1
             del_z2_z1hat = self.layers[1].W 
             del_z1hat_z1 = relu_grad(self.z1_hat) 
-            del_l_z1hat = del_z2_z1hat.dot((del_l_z2 * self.mask2)) 
+            del_l_z1hat = del_z2_z1hat.dot((del_l_z2 * self.mask2))
             
-            del_l_z1 = del_l_z1hat * del_z1hat_z1
-            grad_w1 = x.dot((del_l_z1 * self.mask1).T) / 100
+            del_l_z1 = del_l_z1hat * del_z1hat_z1 
+            del_l_w1 = x.dot((del_l_z1 * self.mask1).T) / 100 
             
-            return [grad_w1, grad_w2, del_l_w3, del_l_w4]
-        # raise NotImplementedError("NN4 gradient (backpropagation) Without Batchnorm model not implemented")     
+            return [del_l_w1, del_l_w2, del_l_w3, del_l_w4]    
 
-    def emp_loss_grad(self, train_X, train_y, W, layer, mode='test'):
+    @cuda.jit(device=True)
+    def emp_loss_grad(self, train_X, train_y, mode, emp_loss_gpu):
         bias_column = np.ones((train_X.shape[0], 1))
         augmented_trainX = np.concatenate([train_X, bias_column], axis=1)
         reshaped_trainY = train_y.reshape((-1, 1))
-        
-        return self.grad(augmented_trainX, reshaped_trainY, W, mode)
+        emp_loss_gpu =  self.grad(train_X, train_y, mode)

@@ -12,14 +12,16 @@ def l2_grad(y, y_hat):
     # raise NotImplementedError("Gradiant of l2 loss function not implemented")
 
 def cross_entropy(y, y_hat):
-    eps = 1e-8
-    cross_entropy = -np.mean(np.multiply(y, np.log(y_hat + eps))) + np.multiply((1 - y), np.log(1 - y_hat + eps))
+    EPSILON = 1e-8
+    y_hat_clipped = np.clip(y_hat, EPSILON, 1 - EPSILON)
+    cross_entropy = -np.mean(y * np.log(y_hat_clipped) + (1 - y) * np.log(1 - y_hat_clipped))
     return cross_entropy
     # raise NotImplementedError("Cross entropy loss function not implemented")
     
 def cross_entropy_grad(y, y_hat):
     N = y.shape[0]
-    eps = 1e-8
-    cross_entropy_grad = -(np.divide(y, y_hat + eps) - np.divide(1 - y, 1 - y_hat + eps)) / N
+    EPSILON = 1e-8
+    y_hat_clipped = np.clip(y_hat, EPSILON, 1 - EPSILON)
+    cross_entropy_grad = -(y / y_hat_clipped - (1 - y) / (1 - y_hat_clipped)) / N    
     return cross_entropy_grad
     # raise NotImplementedError("Gradiant of Cross entropy loss function not implemented")

@@ -2,12 +2,12 @@
 import numpy as np
 
 def relu(x):
-    relu = (x >= 0) * x
+    relu = x * (x >= 0)
     return relu
     # raise NotImplementedError("ReLU function not implemented")
 
 def relu_grad(z):
-    relu_grad = (z > 0) * 1
+    relu_grad = (z > 0).astype(int)
     return relu_grad
     # raise NotImplementedError("Gradient of ReLU function not implemented")
 
@@ -17,7 +17,8 @@ def sigmoid(x):
     # raise NotImplementedError("Sigmoid function not implemented")
     
 def sigmoid_grad(z):
-    sigmoid_grad = z * (1 - z)
+    sigmoid_z = 1 / (1 + np.exp(-z))
+    sigmoid_grad = sigmoid_z * (1 - sigmoid_z)
     return sigmoid_grad
     # raise NotImplementedError("Gradient of Sigmoid function not implemented")
 
