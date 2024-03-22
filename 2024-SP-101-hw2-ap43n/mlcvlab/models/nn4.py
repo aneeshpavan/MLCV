@@ -4,17 +4,14 @@ from mlcvlab.nn.basis import linear, linear_grad
 from mlcvlab.nn.activations import relu, sigmoid, sigmoid_grad, relu_grad
 from .base import Layer
 from mlcvlab.nn.batchnorm import BatchNorm
+from mlcvlab.nn.dropout import dropout
 
 
 class NN4():
-    def __init__(self, use_batchnorm=False, dropout_param=0):
-        self.layers = [
-            Layer(None, relu),
-            Layer(None, relu),
-            Layer(None, relu),
-            Layer(None, sigmoid)]
-        
+    def __init__(self, use_batchnorm=False, dropout_param=0.25):
+        self.layers = [Layer(None, relu), Layer(None, relu), Layer(None, relu), Layer(None, sigmoid)]
         self.use_batchnorm = use_batchnorm
+        #used in dropout implementation
         self.dropout_param = dropout_param
         
         if self.use_batchnorm:
@@ -25,8 +22,6 @@ class NN4():
     def nn4(self, x, mode):
         # TODO
         if self.use_batchnorm:
-            EPSILON=1e-8
-
             #Layer 1
             self.z1, self.mask1 = linear(x, self.layers[0].W, self.dropout_param, mode)
             self.z1_hat = self.layers[0].activation(self.z1)
@@ -156,9 +151,13 @@ class NN4():
             return [grad_w1, grad_w2, del_l_w3, del_l_w4]
         # raise NotImplementedError("NN4 gradient (backpropagation) Without Batchnorm model not implemented")     
 
-    def emp_loss_grad(self, train_X, train_y, W, layer, mode='test'):
+    def emp_loss_grad(self, train_X, train_y, W, mode='test'):
+        # emp_loss_ = 0
+        # emp_loss_grad_ = None
+        # TODO
         bias_column = np.ones((train_X.shape[0], 1))
         augmented_trainX = np.concatenate([train_X, bias_column], axis=1)
         reshaped_trainY = train_y.reshape((-1, 1))
         
         return self.grad(augmented_trainX, reshaped_trainY, W, mode)
+    # raise NotImplementedError("NN4 Emperical Loss grad not implemented")

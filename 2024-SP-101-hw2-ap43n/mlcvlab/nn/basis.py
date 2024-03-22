@@ -5,10 +5,12 @@ from mlcvlab.nn.dropout import dropout, dropout_grad
 def linear(x, W, p=0.5, mode="test"):
     linear = dropout(np.dot(x, W), p, mode)
     return linear
+# raise NotImplementedError("Linear function not implemented")
 
 def linear_grad(x, mask, mode="test"):
     linear_grad = dropout_grad(x, mask, mode)
     return linear_grad
+# raise NotImplementedError("Gradient of Linear function not implemented")
 
 def radial(x, W):
     # TODO

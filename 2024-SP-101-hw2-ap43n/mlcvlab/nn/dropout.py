@@ -15,8 +15,9 @@ def dropout(x, p, mode='test'):
     '''
     # TODO Implement logic for both 'test' and 'train' modes.
     if mode == 'train':
-        mask = np.random.binomial(1, p, size=x.shape)
-        z = (x * mask)/p
+        mask = np.random.binomial(1, 1 - p, size=x.shape)
+        z = x * mask / (1 - p)
+        return z, mask
     # raise NotImplementedError("Dropout - Test Not Implemented")
 
     elif mode == 'test':
